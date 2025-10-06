@@ -60,17 +60,21 @@ const Customize = () => {
         .select("*")
         .eq("player_id", playerData.id)
         .eq("is_active", true)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 
-      if (carData) {
-        setCar(carData);
-        setHp(carData.hp);
-        setWeight(carData.weight);
-        setAero(carData.aero);
-        setTire(carData.tire);
+      if (!carData) {
+        toast.error("No active car found. Please add a car first.");
+        navigate("/garage");
+        return;
       }
+
+      setCar(carData);
+      setHp(carData.hp);
+      setWeight(carData.weight);
+      setAero(carData.aero);
+      setTire(carData.tire);
     } catch (error: any) {
       console.error(error);
     }

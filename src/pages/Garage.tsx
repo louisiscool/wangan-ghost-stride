@@ -150,7 +150,10 @@ const Garage = () => {
             </CardContent>
           </Card>
 
-          <Card className="cursor-pointer hover:scale-105 transition-transform neon-border bg-card/80 backdrop-blur">
+          <Card 
+            className="cursor-pointer hover:scale-105 transition-transform neon-border bg-card/80 backdrop-blur"
+            onClick={() => navigate("/race/ghost")}
+          >
             <CardHeader>
               <CardTitle className="text-accent">GHOST BATTLE</CardTitle>
             </CardHeader>
