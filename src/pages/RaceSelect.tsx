@@ -84,17 +84,18 @@ const RaceSelect = () => {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
-                  { name: "C1 Inner Loop", length: "8.0 km" },
-                  { name: "C1 Outer Loop", length: "8.0 km" },
-                  { name: "Wangan Line", length: "12.9 km" },
-                  { name: "Yokohane Up", length: "15.2 km" },
-                  { name: "Yokohane Down", length: "15.2 km" },
-                  { name: "Osaka Loop", length: "9.8 km" }
+                  { name: "C1 Inner Loop", length: "8.0 km", route: "/race/story?course=c1-inner" },
+                  { name: "C1 Outer Loop", length: "8.0 km", route: "/race/story?course=c1-outer" },
+                  { name: "Wangan Line", length: "12.9 km", route: "/race/story?course=wangan" },
+                  { name: "Yokohane Up", length: "15.2 km", route: "/race/story?course=yokohane-up" },
+                  { name: "Yokohane Down", length: "15.2 km", route: "/race/story?course=yokohane-down" },
+                  { name: "Osaka Loop", length: "9.8 km", route: "/race/story?course=osaka" }
                 ].map((course) => (
                   <Button
                     key={course.name}
                     variant="outline"
                     className="justify-between h-auto py-4"
+                    onClick={() => navigate(course.route)}
                   >
                     <span className="font-bold">{course.name}</span>
                     <span className="text-muted-foreground">{course.length}</span>
