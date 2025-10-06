@@ -11,11 +11,7 @@ import { Loader2 } from "lucide-react";
 const Auth = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [isLogin, setIsLogin] = useState(true);
   const [accessCode, setAccessCode] = useState("");
-  const [playerName, setPlayerName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
 
   useEffect(() => {
     const checkUser = async () => {
@@ -32,54 +28,73 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
+      if (!accessCode) {
+        toast.error("Please enter your access code");
+        setLoading(false);
+        return;
+      }
+
+      toast.loading("Receiving data from server...");
+
+      // Check if player exists with this access code
+      const { data: existingPlayer, error: queryError } = await supabase
+        .from("players")
+        .select("*")
+        .eq("access_code", accessCode)
+        .maybeSingle();
+
+      if (queryError) throw queryError;
+
+      if (existingPlayer) {
+        // Player exists - sign in with existing account
+        const email = `${accessCode}@wangan.local`;
+        const password = accessCode;
+
+        const { error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
-        if (error) throw error;
-        
-        toast.success("Welcome back, racer!");
+        if (signInError) throw signInError;
+
+        toast.dismiss();
+        toast.success(`Data received! Welcome back, ${existingPlayer.player_name}!`);
         navigate("/garage");
       } else {
-        if (!accessCode || !playerName) {
-          toast.error("Please fill in all fields");
-          setLoading(false);
-          return;
-        }
+        // New player - create account
+        const email = `${accessCode}@wangan.local`;
+        const password = accessCode;
+        const playerName = `RACER_${accessCode.slice(0, 4)}`;
 
-        const { data, error } = await supabase.auth.signUp({
+        const { data: authData, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/`,
-            data: {
-              access_code: accessCode,
-              player_name: playerName,
-            }
           }
         });
 
-        if (error) throw error;
+        if (signUpError) throw signUpError;
 
-        if (data.user) {
+        if (authData.user) {
           const { error: profileError } = await supabase
             .from("players")
             .insert({
-              user_id: data.user.id,
+              user_id: authData.user.id,
               access_code: accessCode,
               player_name: playerName,
             });
 
           if (profileError) throw profileError;
 
-          toast.success("Registration complete! Welcome to the Wangan!");
+          toast.dismiss();
+          toast.success(`Data received! New profile created for ${playerName}!`);
           navigate("/garage");
         }
       }
     } catch (error: any) {
-      toast.error(error.message || "Authentication failed");
+      toast.dismiss();
+      toast.error(error.message || "Failed to receive data");
     } finally {
       setLoading(false);
     }
@@ -93,65 +108,28 @@ const Auth = () => {
       <Card className="w-full max-w-md relative z-10 neon-border bg-card/95 backdrop-blur">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-3xl font-bold neon-text text-primary">
-            {isLogin ? "SYSTEM ACCESS" : "BANAPASSPORT REGISTRATION"}
+            BANAPASSPORT SYSTEM
           </CardTitle>
           <CardDescription className="text-muted-foreground">
-            {isLogin ? "Enter your credentials" : "Create your racer profile"}
+            Insert your card to receive data
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleAuth} className="space-y-4">
-            {!isLogin && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="accessCode">Access Code</Label>
-                  <Input
-                    id="accessCode"
-                    placeholder="XXXX-XXXX-XXXX-XXXX"
-                    value={accessCode}
-                    onChange={(e) => setAccessCode(e.target.value)}
-                    required={!isLogin}
-                    className="bg-muted/50 border-primary/30 focus:border-primary"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="playerName">Racer Name</Label>
-                  <Input
-                    id="playerName"
-                    placeholder="Enter your name"
-                    value={playerName}
-                    onChange={(e) => setPlayerName(e.target.value)}
-                    required={!isLogin}
-                    className="bg-muted/50 border-primary/30 focus:border-primary"
-                  />
-                </div>
-              </>
-            )}
-            
+          <form onSubmit={handleAuth} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="accessCode" className="text-primary">Access Code</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="racer@wangan.jp"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="accessCode"
+                placeholder="XXXX-XXXX-XXXX-XXXX"
+                value={accessCode}
+                onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
                 required
-                className="bg-muted/50 border-primary/30 focus:border-primary"
+                className="bg-muted/50 border-primary/30 focus:border-primary text-center text-xl tracking-wider font-mono"
+                maxLength={19}
               />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="bg-muted/50 border-primary/30 focus:border-primary"
-              />
+              <p className="text-xs text-muted-foreground text-center">
+                Enter your Banapassport access code
+              </p>
             </div>
 
             <Button
@@ -159,26 +137,18 @@ const Auth = () => {
               className="w-full"
               variant="neon"
               disabled={loading}
+              size="lg"
             >
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
+                  Receiving data...
                 </>
               ) : (
-                <>{isLogin ? "LOGIN" : "REGISTER"}</>
+                <>INSERT CARD</>
               )}
             </Button>
           </form>
-
-          <div className="mt-4 text-center">
-            <button
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-primary hover:underline"
-            >
-              {isLogin ? "Need a Banapassport? Register here" : "Already have an account? Login"}
-            </button>
-          </div>
         </CardContent>
       </Card>
     </div>
